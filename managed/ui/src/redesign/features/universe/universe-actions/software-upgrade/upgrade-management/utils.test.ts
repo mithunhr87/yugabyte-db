@@ -6,12 +6,12 @@ import {
 } from '@app/mocks/mock-data/taskMocks';
 import {
   AZUpgradeStatus,
+  CanaryPauseState,
   DbUpgradePrecheckStatus,
   ServerType,
   type CanaryUpgradeProgress,
   type Task
 } from '@app/redesign/features/tasks/dtos';
-
 import { AccordionCardState } from './AccordionCard';
 import { classifyDbUpgradeStages, type DbUpgradeStages } from './utils';
 
@@ -173,8 +173,14 @@ describe('classifyDbUpgradeStages', () => {
         )
       );
 
-      expect(result.upgradeAzStages['az-west']).toBe(AccordionCardState.IN_PROGRESS);
-      expect(result.upgradeAzStages['az-east']).toBe(AccordionCardState.SUCCESS);
+      expect(result.upgradeAzStages['az-west']).toEqual({
+        accordionCardState: AccordionCardState.IN_PROGRESS,
+        isLastAzBeforeCanaryPause: false
+      });
+      expect(result.upgradeAzStages['az-east']).toEqual({
+        accordionCardState: AccordionCardState.SUCCESS,
+        isLastAzBeforeCanaryPause: false
+      });
     });
 
     it.each([
@@ -195,7 +201,10 @@ describe('classifyDbUpgradeStages', () => {
           )
         );
 
-        expect(result.upgradeAzStages['single-az']).toBe(expectedAccordionState);
+        expect(result.upgradeAzStages['single-az']).toEqual({
+          accordionCardState: expectedAccordionState,
+          isLastAzBeforeCanaryPause: false
+        });
       }
     );
 
@@ -221,7 +230,71 @@ describe('classifyDbUpgradeStages', () => {
         )
       );
 
-      expect(result.upgradeAzStages['az-x']).toBe(AccordionCardState.NEUTRAL);
+      expect(result.upgradeAzStages['az-x']).toEqual({
+        accordionCardState: AccordionCardState.NEUTRAL,
+        isLastAzBeforeCanaryPause: false
+      });
+    });
+
+    it('marks the ordered last completed AZ when paused after t-servers with remaining NOT_STARTED', () => {
+      const result = classifyDbUpgradeStages(
+        createDbUpgradeTask(
+          createCanaryUpgradeProgress({
+            pauseState: CanaryPauseState.PAUSED_AFTER_TSERVERS_AZ,
+            tserverAZUpgradeStatesList: [
+              createAzUpgradeState('az-first', AZUpgradeStatus.COMPLETED, ServerType.TSERVER),
+              createAzUpgradeState('az-boundary', AZUpgradeStatus.COMPLETED, ServerType.TSERVER),
+              createAzUpgradeState('az-rest', AZUpgradeStatus.NOT_STARTED, ServerType.TSERVER)
+            ]
+          })
+        )
+      );
+
+      expect(result.upgradeAzStages['az-first']).toEqual({
+        accordionCardState: AccordionCardState.SUCCESS,
+        isLastAzBeforeCanaryPause: false
+      });
+      expect(result.upgradeAzStages['az-boundary']).toEqual({
+        accordionCardState: AccordionCardState.SUCCESS,
+        isLastAzBeforeCanaryPause: true
+      });
+      expect(result.upgradeAzStages['az-rest']).toEqual({
+        accordionCardState: AccordionCardState.NEUTRAL,
+        isLastAzBeforeCanaryPause: false
+      });
+    });
+
+    it('does not mark a pause boundary when pause state is not after t-servers', () => {
+      const result = classifyDbUpgradeStages(
+        createDbUpgradeTask(
+          createCanaryUpgradeProgress({
+            pauseState: CanaryPauseState.PAUSED_AFTER_MASTERS,
+            tserverAZUpgradeStatesList: [
+              createAzUpgradeState('az-a', AZUpgradeStatus.COMPLETED, ServerType.TSERVER),
+              createAzUpgradeState('az-b', AZUpgradeStatus.NOT_STARTED, ServerType.TSERVER)
+            ]
+          })
+        )
+      );
+
+      expect(result.upgradeAzStages['az-a']?.isLastAzBeforeCanaryPause).toBe(false);
+    });
+
+    it('does not mark a pause boundary when every t-server AZ has completed', () => {
+      const result = classifyDbUpgradeStages(
+        createDbUpgradeTask(
+          createCanaryUpgradeProgress({
+            pauseState: CanaryPauseState.PAUSED_AFTER_TSERVERS_AZ,
+            tserverAZUpgradeStatesList: [
+              createAzUpgradeState('az-a', AZUpgradeStatus.COMPLETED, ServerType.TSERVER),
+              createAzUpgradeState('az-b', AZUpgradeStatus.COMPLETED, ServerType.TSERVER)
+            ]
+          })
+        )
+      );
+
+      expect(result.upgradeAzStages['az-a']?.isLastAzBeforeCanaryPause).toBe(false);
+      expect(result.upgradeAzStages['az-b']?.isLastAzBeforeCanaryPause).toBe(false);
     });
   });
 

@@ -82,6 +82,7 @@ export const DbUpgradeManagementSidePanel = ({
       enabled: !!targetDbVersion
     }
   );
+  const isYsqlMajorUpgrade = dbUpgradeMetadataQuery.data?.ysql_major_version_upgrade ?? false;
   const universeDetailsQuery = useQuery(universeQueryKey.detailsV2(universeUuid), () =>
     getUniverse(universeUuid)
   );
@@ -105,9 +106,7 @@ export const DbUpgradeManagementSidePanel = ({
               )
             })}
           </Typography>
-          {dbUpgradeMetadataQuery.data?.ysql_major_version_upgrade && (
-            <Typography variant="body1">{t('ysqlMajorUpgrade')}</Typography>
-          )}
+          {isYsqlMajorUpgrade && <Typography variant="body1">{t('ysqlMajorUpgrade')}</Typography>}
         </div>
       </div>
       {latestSoftwareUpgradeTask && (
@@ -115,6 +114,7 @@ export const DbUpgradeManagementSidePanel = ({
           dbUpgradeTask={latestSoftwareUpgradeTask}
           universe={universe}
           className={classes.progressPanel}
+          isYsqlMajorUpgrade={isYsqlMajorUpgrade}
         />
       )}
     </YBModal>

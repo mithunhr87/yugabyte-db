@@ -8,7 +8,9 @@ import {
 import { generateUniverseMockResponse } from '@app/mocks/mock-data/universeMocks';
 import {
   AZUpgradeStatus,
+  CanaryPauseState,
   DbUpgradePrecheckStatus,
+  TaskState,
   type Task
 } from '@app/redesign/features/tasks/dtos';
 import type { GetPagedCustomerTaskResponse } from '@app/redesign/helpers/api';
@@ -166,6 +168,23 @@ export const MasterUpgradeFailed: Story = storyWithTask(
   })
 );
 
+export const MasterUpgradeCompletedAndUpgradePaused: Story = storyWithTask(
+  createDbUpgradeTaskMock({
+    canaryUpgradeProgress: {
+      pauseState: CanaryPauseState.PAUSED_AFTER_MASTERS,
+      precheckStatus: DbUpgradePrecheckStatus.SUCCESS,
+      masterAZUpgradeStatesList: defaultCanary.masterAZUpgradeStatesList.map((az) => ({
+        ...az,
+        status: AZUpgradeStatus.COMPLETED
+      })),
+      tserverAZUpgradeStatesList: defaultCanary.tserverAZUpgradeStatesList.map((az) => ({
+        ...az,
+        status: AZUpgradeStatus.NOT_STARTED
+      }))
+    }
+  })
+);
+
 export const UpgradeAzTserversRunning: Story = storyWithTask(
   createDbUpgradeTaskMock({
     canaryUpgradeProgress: {
@@ -181,7 +200,71 @@ export const UpgradeAzTserversRunning: Story = storyWithTask(
   })
 );
 
-export const WithYsqlMajorUpgrade: Story = storyWithTask(createDbUpgradeTaskMock(), {
-  ysql_major_version_upgrade: true,
-  finalize_required: true
-});
+export const UpgradeAzTserversFailed: Story = storyWithTask(
+  createDbUpgradeTaskMock({
+    canaryUpgradeProgress: {
+      precheckStatus: DbUpgradePrecheckStatus.SUCCESS,
+      masterAZUpgradeStatesList: defaultCanary.masterAZUpgradeStatesList.map((az) => ({
+        ...az,
+        status: AZUpgradeStatus.COMPLETED
+      })),
+      tserverAZUpgradeStatesList: defaultCanary.tserverAZUpgradeStatesList.map((az, index) => ({
+        ...az,
+        status: index === 0 ? AZUpgradeStatus.FAILED : AZUpgradeStatus.NOT_STARTED
+      }))
+    }
+  })
+);
+
+export const UpgradeAzTserverCompletedAndUpgradePaused: Story = storyWithTask(
+  createDbUpgradeTaskMock({
+    canaryUpgradeProgress: {
+      pauseState: CanaryPauseState.PAUSED_AFTER_TSERVERS_AZ,
+      precheckStatus: DbUpgradePrecheckStatus.SUCCESS,
+      masterAZUpgradeStatesList: defaultCanary.masterAZUpgradeStatesList.map((az) => ({
+        ...az,
+        status: AZUpgradeStatus.COMPLETED
+      })),
+      tserverAZUpgradeStatesList: defaultCanary.tserverAZUpgradeStatesList.map((az, index) => ({
+        ...az,
+        status: index === 0 ? AZUpgradeStatus.COMPLETED : AZUpgradeStatus.NOT_STARTED
+      }))
+    }
+  })
+);
+
+export const UpgradePendingFinalize: Story = storyWithTask(
+  createDbUpgradeTaskMock({
+    status: TaskState.SUCCESS,
+    canaryUpgradeProgress: {
+      precheckStatus: DbUpgradePrecheckStatus.SUCCESS,
+      masterAZUpgradeStatesList: defaultCanary.masterAZUpgradeStatesList.map((az) => ({
+        ...az,
+        status: AZUpgradeStatus.COMPLETED
+      })),
+      tserverAZUpgradeStatesList: defaultCanary.tserverAZUpgradeStatesList.map((az) => ({
+        ...az,
+        status: AZUpgradeStatus.COMPLETED
+      }))
+    }
+  })
+);
+
+export const WithYsqlMajorUpgrade: Story = storyWithTask(
+  createDbUpgradeTaskMock({
+    canaryUpgradeProgress: {
+      precheckStatus: DbUpgradePrecheckStatus.SUCCESS,
+      masterAZUpgradeStatesList: defaultCanary.masterAZUpgradeStatesList.map((az) => ({
+        ...az,
+        status: AZUpgradeStatus.COMPLETED
+      })),
+      tserverAZUpgradeStatesList: tserverAzUpgradeStatesListWithSecondLastInProgress(
+        defaultCanary.tserverAZUpgradeStatesList
+      )
+    }
+  }),
+  {
+    ysql_major_version_upgrade: true,
+    finalize_required: true
+  }
+);

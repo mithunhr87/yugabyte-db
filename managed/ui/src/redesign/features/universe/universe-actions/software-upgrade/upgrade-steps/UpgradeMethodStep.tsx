@@ -7,7 +7,7 @@ import clsx from 'clsx';
 import { YBInputField, YBTooltip } from '@app/redesign/components';
 import { YBRadio } from '@app/redesign/components/YBRadio/YBRadio';
 import {
-  DB_UPGRADE_REQUIREMENTS_DOC_URL,
+  YBA_UNIVERSE_UPGRADE_DOCUMENTATION_URL,
   UpgradeMethod,
   UpgradePace
 } from '@app/redesign/features/universe/universe-actions/software-upgrade/constants';
@@ -526,7 +526,7 @@ export const UpgradeMethodStep = () => {
                         className={classes.canaryTooltipLink}
                         target="_blank"
                         rel="noopener noreferrer"
-                        href={DB_UPGRADE_REQUIREMENTS_DOC_URL}
+                        href={YBA_UNIVERSE_UPGRADE_DOCUMENTATION_URL}
                       />
                     )
                   }}
@@ -537,8 +537,7 @@ export const UpgradeMethodStep = () => {
             <div
               className={clsx(
                 classes.canarySection,
-                  selectedMethod === UpgradeMethod.CANARY &&
-                  classes.selectedSection,
+                selectedMethod === UpgradeMethod.CANARY && classes.selectedSection,
                 !isCanaryUpgradeAvailable && classes.canaryOptionDisabled
               )}
               onClick={() => handleMethodSelect(UpgradeMethod.CANARY)}

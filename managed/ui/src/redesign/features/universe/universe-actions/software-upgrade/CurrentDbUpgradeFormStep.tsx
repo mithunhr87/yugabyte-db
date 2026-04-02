@@ -2,8 +2,8 @@ import { assertUnreachableCase } from '@app/utils/errorHandlingUtils';
 import { DbUpgradeFormStep } from './constants';
 import { DbVersionStep } from './upgrade-steps/DbVersionStep';
 import { UpgradeMethodStep } from './upgrade-steps/UpgradeMethodStep';
-import { UpgradePlanStep } from './upgrade-steps/UpgradePlanStep';
 import { UpgradePaceStep } from './upgrade-steps/UpgradePaceStep';
+import { UpgradePlanStep } from './upgrade-steps/UpgradePlanStep';
 
 interface CurrentDbUpgradeFormStepProps {
   currentFormStep: DbUpgradeFormStep;

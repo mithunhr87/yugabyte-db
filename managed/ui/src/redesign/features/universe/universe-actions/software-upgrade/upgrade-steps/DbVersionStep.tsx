@@ -1,19 +1,15 @@
 import { ChangeEvent } from 'react';
-import { useFormContext, Controller } from 'react-hook-form';
-import { useTranslation } from 'react-i18next';
 import { makeStyles, Typography } from '@material-ui/core';
+import { YBAutoComplete, YBButton } from '@yugabyte-ui-library/core';
+import { Controller, useFormContext } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { useMutation } from 'react-query';
 
-import { YBAutoComplete, YBButton } from '@yugabyte-ui-library/core';
-
-import { DbUpgradeInfoCard } from '@app/redesign/features/universe/universe-actions/software-upgrade/DbUpgradeInfoCard';
-import { DbReleaseAutocompleteOption } from '@app/redesign/features/universe/universe-actions/software-upgrade/DbReleaseAutocompleteOption';
-import { useDbUpgradeModalContext } from '@app/redesign/features/universe/universe-actions/software-upgrade/DbUpgradeModalContext';
-import type {
-  DBUpgradeFormFields,
-  ReleaseOption
-} from '@app/redesign/features/universe/universe-actions/software-upgrade/types';
 import { startSoftwareUpgrade } from '@app/v2/api/universe/universe';
+import { DbUpgradeInfoCard } from '../DbUpgradeInfoCard';
+import { DbReleaseAutocompleteOption } from '../DbReleaseAutocompleteOption';
+import type { DBUpgradeFormFields, ReleaseOption } from '../types';
+import { useDbUpgradeModalContext } from '../DbUpgradeModalContext';
 
 const TRANSLATION_KEY_PREFIX = 'universeActions.dbUpgrade.upgradeModal.dbVersionStep';
 
