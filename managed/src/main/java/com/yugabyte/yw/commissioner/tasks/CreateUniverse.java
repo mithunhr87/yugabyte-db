@@ -225,6 +225,8 @@ public class CreateUniverse extends UniverseDefinitionTaskBase {
 
       createInstanceExistsCheckTasks(universe.getUniverseUUID(), taskParams(), universe.getNodes());
 
+      createPersistCpuCgroupConfiguredTask(universe);
+
       boolean deleteCapacityReservation =
           createCapacityReservationsIfNeeded(
               taskParams().nodeDetailsSet,
@@ -247,6 +249,7 @@ public class CreateUniverse extends UniverseDefinitionTaskBase {
             gFlagsParams.resetMasterState = true;
             gFlagsParams.masterJoinExistingCluster = false;
           });
+
       if (deleteCapacityReservation) {
         createDeleteCapacityReservationTask();
       }

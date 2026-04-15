@@ -111,6 +111,8 @@ public class AnsibleConfigureServers extends NodeTaskBase {
     public boolean overrideNodePorts = false;
     // Amount of memory to limit the postgres process to via the ysql cgroup (in megabytes)
     public int cgroupSize = 0;
+    // If non-null, overrides userIntent.isCpuCgroupConfigured() for configure_cgroup decision.
+    @JsonIgnore @Nullable public Boolean configureCgroupOverride;
     // If configured will skip install-package role in ansible and use node-agent rpc instead.
     public boolean skipDownloadSoftware = false;
     // Supplier for master addresses override which is invoked only when the subtask starts
@@ -189,7 +191,7 @@ public class AnsibleConfigureServers extends NodeTaskBase {
       nodeAgentClient.runConfigureServer(
           nodeAgent,
           nodeAgentRpcPayload.setUpConfigureServerBits(
-              universe, nodeDetails, taskParams(), nodeAgent),
+              universe, nodeDetails, taskParams(), nodeAgent, taskParams().configureCgroupOverride),
           NodeAgentRpcPayload.DEFAULT_CONFIGURE_USER);
       if (taskParams().type == UpgradeTaskType.Software) {
         if (taskSubType == null) {

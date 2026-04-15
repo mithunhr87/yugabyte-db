@@ -301,6 +301,9 @@ public class UserTaskDetails {
     // Persist use clockbound
     PersistUseClockbound,
 
+    // Persist enable multi-tenancy
+    PersistEnableMultiTenancy,
+
     // Support bundle component download
     SupportBundleComponentDownload,
 
@@ -708,6 +711,10 @@ public class UserTaskDetails {
       case PersistUseClockbound:
         title = "Persist useClockbound";
         description = "Persist useClockbound true/false in userIntent";
+        break;
+      case PersistEnableMultiTenancy:
+        title = "Persist multi-tenancy config";
+        description = "Persist multi-tenancy QoS configuration in userIntent";
         break;
       case PersistYbdbInbuiltYbc:
         title = "Persist useYbdbInbuiltYbc";
