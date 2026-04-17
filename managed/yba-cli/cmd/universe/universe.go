@@ -53,6 +53,7 @@ func init() {
 			deleteMetadataCmd,
 			attachUniverseCmd,
 			filecollection.FileCollectionCmd,
+			runScriptCmd,
 		},
 	)
 

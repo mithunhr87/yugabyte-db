@@ -422,6 +422,8 @@ const (
 	SupportBundleOperation = "SupportBundle"
 	// FileCollectionOperation type
 	FileCollectionOperation = "FileCollection"
+	// RunScriptOperation type
+	RunScriptOperation = "RunScript"
 )
 
 // Different resource types that are supported in CLI

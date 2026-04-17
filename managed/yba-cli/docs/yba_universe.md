@@ -52,6 +52,7 @@ yba universe [flags]
 * [yba universe restart](yba_universe_restart.md)	 - Restart a YugabyteDB Anywhere Universe
 * [yba universe resume](yba_universe_resume.md)	 - Resume a YugabyteDB Anywhere universe
 * [yba universe run-sample-apps](yba_universe_run-sample-apps.md)	 - Get sample apps command for a YugabyteDB Anywhere universe
+* [yba universe run-script](yba_universe_run-script.md)	 - Execute a script on database nodes in a universe
 * [yba universe security](yba_universe_security.md)	 - Manage security settings for a universe
 * [yba universe support-bundle](yba_universe_support-bundle.md)	 - Support bundle operations on a YugabyteDB Anywhere universe
 * [yba universe table](yba_universe_table.md)	 - Manage YugabyteDB Anywhere universe tables
