@@ -400,6 +400,13 @@
             "waitBetweenBatchesMin": "Must be 0 or greater."
           }
         },
+        "finalizeModal": {
+          "modalTitle": "One last reminder before we proceed...",
+          "noRollBackAfterFinalize": "After the upgrade is finalized, you won't be able to roll back.",
+          "makeSureToEvaluatePerformance": "Make sure you evaluate the universe performance before finalizing the upgrade.",
+          "evaluationLink": "View recommended evaluation steps",
+          "submitLabel": "Proceed to finalize the upgrade"
+        },
         "dbUpgradeManagementSidePanel": {
           "title": "Upgrade Monitor",
           "descriptionTitle": "DESCRIPTION",
@@ -487,7 +494,9 @@
           },
           "finalizeOrRollBack": {
             "title": "Finalize or Roll Back Upgrade.",
-            "description": "Assess universe performance and finalize or roll back."
+            "description": "Assess universe performance and finalize or roll back.",
+            "rollBack": "Roll Back",
+            "finalizeUpgradeNow": "Finalize Upgrade Now"
           },
           "upgradeAborted": {
             "title": "Upgrade aborted.",

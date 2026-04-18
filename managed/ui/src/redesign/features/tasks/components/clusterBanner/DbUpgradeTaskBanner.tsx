@@ -1,18 +1,25 @@
 import { useState } from 'react';
+import { Link as MUILink } from '@material-ui/core';
 import { Trans, useTranslation } from 'react-i18next';
 import { useQuery } from 'react-query';
 
-import { Task, TaskState, TaskType } from '../../dtos';
-import { ClusterOperationBanner, ClusterOperationBannerType } from './ClusterOperationBanner';
-import { precheckSoftwareUpgrade } from '@app/v2/api/universe/universe';
-import { dbUpgradeMetadataQueryKey } from '@app/redesign/helpers/api';
 import { yba } from '@yugabyte-ui-library/core';
-import { formatYbSoftwareVersionString } from '@app/utils/Formatters';
-import { Link as MUILink } from '@material-ui/core';
+
+import { DbUpgradeFinalizeModal } from '@app/redesign/features/universe/universe-actions/software-upgrade/DbUpgradeFinalizeModal';
 import { DbUpgradeManagementSidePanel } from '@app/redesign/features/universe/universe-actions/software-upgrade/upgrade-management/DbUpgradeManagementSidePanel';
 import { DbUpgradeRollBackModal } from '@app/redesign/features/universe/universe-actions/software-upgrade/DbUpgradeRollBackModal';
 import { YBA_UNIVERSE_UPGRADE_DOCUMENTATION_URL } from '@app/redesign/features/universe/universe-actions/software-upgrade/constants';
+import { dbUpgradeMetadataQueryKey, universeQueryKey } from '@app/redesign/helpers/api';
+import { getUniverse, precheckSoftwareUpgrade } from '@app/v2/api/universe/universe';
+import { UniverseInfoSoftwareUpgradeState } from '@app/v2/api/yugabyteDBAnywhereV2APIs.schemas';
+import { formatYbSoftwareVersionString } from '@app/utils/Formatters';
 import { assertUnreachableCase } from '@app/utils/errorHandlingUtils';
+
+import { Task, TaskState, TaskType } from '../../dtos';
+import { ClusterOperationBanner, ClusterOperationBannerType } from './ClusterOperationBanner';
+
+import ConnectIcon from '@app/redesign/assets/approved/connect.svg';
+
 const { YBButton } = yba;
 interface DbUpgradeTaskBannerProps {
   task: Task;
@@ -23,11 +30,18 @@ export const DbUpgradeTaskBanner = ({ task, universeUuid }: DbUpgradeTaskBannerP
   const [isDbUpgradeManagementSidePanelOpen, setIsDbUpgradeManagementSidePanelOpen] =
     useState(false);
   const [isDbUpgradeRollBackModalOpen, setIsDbUpgradeRollBackModalOpen] = useState(false);
+  const [isDbUpgradeFinalizeModalOpen, setIsDbUpgradeFinalizeModalOpen] = useState(false);
   const { t } = useTranslation('translation', {
     keyPrefix: 'universeActions.dbUpgrade.clusterBanner'
   });
   const isDbUpgradeTask = task.type === TaskType.SOFTWARE_UPGRADE;
   const targetDbVersion = task.details?.versionNumbers?.ybSoftwareVersion ?? '';
+
+  const universeDetailsQuery = useQuery(
+    universeQueryKey.detailsV2(universeUuid),
+    () => getUniverse(universeUuid),
+    { enabled: !!universeUuid }
+  );
 
   const dbUpgradeMetadataQuery = useQuery(
     dbUpgradeMetadataQueryKey.detail(universeUuid, {
@@ -47,10 +61,8 @@ export const DbUpgradeTaskBanner = ({ task, universeUuid }: DbUpgradeTaskBannerP
     return null;
   }
 
-  const {
-    ysql_major_version_upgrade: isYsqlMajorUpgrade = false,
-    finalize_required: isFinalizationRequired = false
-  } = dbUpgradeMetadataQuery.data ?? {};
+  const { ysql_major_version_upgrade: isYsqlMajorUpgrade = false } =
+    dbUpgradeMetadataQuery.data ?? {};
 
   let bannerComponent = null;
   const openDbUpgradeManagementSidePanelButton = (
@@ -106,12 +118,35 @@ export const DbUpgradeTaskBanner = ({ task, universeUuid }: DbUpgradeTaskBannerP
       );
       break;
     case TaskState.SUCCESS:
-      if (isFinalizationRequired) {
+      if (
+        universeDetailsQuery.data?.info?.software_upgrade_state ===
+        UniverseInfoSoftwareUpgradeState.PreFinalize
+      ) {
         bannerComponent = (
           <ClusterOperationBanner
             type={ClusterOperationBannerType.PENDING_ACTION_YELLOW}
             title={t('finalizeOrRollBack.title')}
-            actions={openDbUpgradeManagementSidePanelButton}
+            actions={
+              <>
+                <YBButton
+                  variant="secondary"
+                  size="medium"
+                  dataTestId="roll-back-upgrade-button-finalize"
+                  onClick={() => setIsDbUpgradeRollBackModalOpen(true)}
+                >
+                  {t('finalizeOrRollBack.rollBack')}
+                </YBButton>
+                <YBButton
+                  variant="ybaPrimary"
+                  size="medium"
+                  startIcon={<ConnectIcon width={24} height={24} />}
+                  dataTestId="finalize-upgrade-now-button"
+                  onClick={() => setIsDbUpgradeFinalizeModalOpen(true)}
+                >
+                  {t('finalizeOrRollBack.finalizeUpgradeNow')}
+                </YBButton>
+              </>
+            }
             description={t('finalizeOrRollBack.description')}
           />
         );
@@ -163,20 +198,33 @@ export const DbUpgradeTaskBanner = ({ task, universeUuid }: DbUpgradeTaskBannerP
   return (
     <>
       {bannerComponent}
-      <DbUpgradeManagementSidePanel
-        modalProps={{
-          open: isDbUpgradeManagementSidePanelOpen,
-          onClose: () => setIsDbUpgradeManagementSidePanelOpen(false)
-        }}
-        universeUuid={universeUuid}
-      />
-      <DbUpgradeRollBackModal
-        modalProps={{
-          open: isDbUpgradeRollBackModalOpen,
-          onClose: () => setIsDbUpgradeRollBackModalOpen(false)
-        }}
-        universeUuid={universeUuid}
-      />
+      {isDbUpgradeManagementSidePanelOpen && (
+        <DbUpgradeManagementSidePanel
+          modalProps={{
+            open: isDbUpgradeManagementSidePanelOpen,
+            onClose: () => setIsDbUpgradeManagementSidePanelOpen(false)
+          }}
+          universeUuid={universeUuid}
+        />
+      )}
+      {isDbUpgradeRollBackModalOpen && (
+        <DbUpgradeRollBackModal
+          modalProps={{
+            open: isDbUpgradeRollBackModalOpen,
+            onClose: () => setIsDbUpgradeRollBackModalOpen(false)
+          }}
+          universeUuid={universeUuid}
+        />
+      )}
+      {isDbUpgradeFinalizeModalOpen && (
+        <DbUpgradeFinalizeModal
+          modalProps={{
+            open: isDbUpgradeFinalizeModalOpen,
+            onClose: () => setIsDbUpgradeFinalizeModalOpen(false)
+          }}
+          universeUuid={universeUuid}
+        />
+      )}
     </>
   );
 };

@@ -5,6 +5,8 @@ import { Controller, useFormContext } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { useMutation } from 'react-query';
 
+import { ApiPermissionMap } from '@app/redesign/features/rbac/ApiAndUserPermMapping';
+import { RbacValidator } from '@app/redesign/features/rbac/common/RbacApiPermValidator';
 import { startSoftwareUpgrade } from '@app/v2/api/universe/universe';
 import { DbUpgradeInfoCard } from '../DbUpgradeInfoCard';
 import { DbReleaseAutocompleteOption } from '../DbReleaseAutocompleteOption';
@@ -76,6 +78,11 @@ export const DbVersionStep = () => {
   const classes = useStyles();
   const { currentUniverseUuid, currentDbVersion, targetReleaseOptions, closeModal } =
     useDbUpgradeModalContext();
+
+  const softwareUpgradeRbacAccessRequiredOn = {
+    onResource: currentUniverseUuid,
+    ...ApiPermissionMap.UPGRADE_NEW_UNIVERSE_SOFTWARE
+  };
 
   const runDbUpgradePrecheck = useMutation(
     (targetDbVersion: string) =>
@@ -166,15 +173,18 @@ export const DbVersionStep = () => {
               currentVersion={currentDbVersion}
               targetVersion={selectedVersion}
             />
-            <YBButton
-              variant="secondary"
-              onClick={handleRunPreupgradeCheck}
-              dataTestId={`${TEST_ID_PREFIX}-RunPreupgradeCheckButton`}
-              fullWidth={false}
-              sx={{ alignSelf: 'flex-end' }}
-            >
-              {t('runPreupgradeCheck')}
-            </YBButton>
+            <RbacValidator accessRequiredOn={softwareUpgradeRbacAccessRequiredOn} isControl>
+              <YBButton
+                variant="secondary"
+                onClick={handleRunPreupgradeCheck}
+                disabled={runDbUpgradePrecheck.isLoading}
+                dataTestId={`${TEST_ID_PREFIX}-RunPreupgradeCheckButton`}
+                fullWidth={false}
+                sx={{ alignSelf: 'flex-end' }}
+              >
+                {t('runPreupgradeCheck')}
+              </YBButton>
+            </RbacValidator>
           </div>
         )}
       </div>

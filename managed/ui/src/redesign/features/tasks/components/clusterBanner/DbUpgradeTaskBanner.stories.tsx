@@ -18,7 +18,11 @@ import {
   TaskType,
   type Task
 } from '@app/redesign/features/tasks/dtos';
-import type { UniverseSoftwareUpgradePrecheckResp } from '@app/v2/api/yugabyteDBAnywhereV2APIs.schemas';
+import {
+  UniverseInfoSoftwareUpgradeState,
+  type UniverseInfo,
+  type UniverseSoftwareUpgradePrecheckResp
+} from '@app/v2/api/yugabyteDBAnywhereV2APIs.schemas';
 
 import { DbUpgradeTaskBanner } from './DbUpgradeTaskBanner';
 
@@ -42,10 +46,12 @@ const defaultDbUpgradeTask = createDbUpgradeTaskMock({
   }
 });
 
-const storyWithBannerMsw = (
-  task: Task,
-  precheckOverrides?: Partial<UniverseSoftwareUpgradePrecheckResp>
-) => ({
+type DbUpgradeTaskBannerStoryMswOptions = {
+  precheckOverrides?: Partial<UniverseSoftwareUpgradePrecheckResp>;
+  universeInfoOverrides?: Partial<UniverseInfo>;
+};
+
+const storyWithBannerMsw = (task: Task, storyMswOptions?: DbUpgradeTaskBannerStoryMswOptions) => ({
   parameters: {
     msw: {
       handlers: {
@@ -53,7 +59,10 @@ const storyWithBannerMsw = (
           DB_UPGRADE_TASK_MOCK_UNIVERSE_UUID,
           task,
           mockUniverse,
-          createDbUpgradePrecheckMetadataMock(precheckOverrides ?? {})
+          createDbUpgradePrecheckMetadataMock(storyMswOptions?.precheckOverrides ?? {}),
+          storyMswOptions?.universeInfoOverrides
+            ? { universeInfoOverrides: storyMswOptions.universeInfoOverrides }
+            : undefined
         )
       }
     }
@@ -71,7 +80,9 @@ const meta = {
   title: 'Tasks/DbUpgradeTaskBanner',
   component: DbUpgradeTaskBanner,
   tags: ['autodocs'],
-  parameters: storyWithBannerMsw(defaultDbUpgradeTask).parameters,
+  parameters: storyWithBannerMsw(defaultDbUpgradeTask, {
+    universeInfoOverrides: { software_upgrade_state: UniverseInfoSoftwareUpgradeState.Paused }
+  }).parameters,
   decorators: [withCustomerId, (Story: ComponentType) => <Story />],
   args: {
     universeUuid: DB_UPGRADE_TASK_MOCK_UNIVERSE_UUID,
@@ -100,7 +111,9 @@ const upgradeRunningTask = createDbUpgradeTaskMock({
 });
 
 export const UpgradeRunning: Story = {
-  ...storyWithBannerMsw(upgradeRunningTask),
+  ...storyWithBannerMsw(upgradeRunningTask, {
+    universeInfoOverrides: { software_upgrade_state: UniverseInfoSoftwareUpgradeState.Upgrading }
+  }),
   args: {
     task: upgradeRunningTask
   }
@@ -113,7 +126,8 @@ const upgradeRunningYsqlTask = createDbUpgradeTaskMock({
 
 export const UpgradeRunningYsqlMajorVersion: Story = {
   ...storyWithBannerMsw(upgradeRunningYsqlTask, {
-    ysql_major_version_upgrade: true
+    precheckOverrides: { ysql_major_version_upgrade: true },
+    universeInfoOverrides: { software_upgrade_state: UniverseInfoSoftwareUpgradeState.Upgrading }
   }),
   args: {
     task: upgradeRunningYsqlTask
@@ -139,7 +153,9 @@ const upgradePausedTask = createDbUpgradeTaskMock({
 });
 
 export const UpgradePaused: Story = {
-  ...storyWithBannerMsw(upgradePausedTask),
+  ...storyWithBannerMsw(upgradePausedTask, {
+    universeInfoOverrides: { software_upgrade_state: UniverseInfoSoftwareUpgradeState.Paused }
+  }),
   args: {
     task: upgradePausedTask
   }
@@ -164,8 +180,11 @@ const upgradeSuccessfulPendingFinalizeTask = createDbUpgradeTaskMock({
 
 export const UpgradeSuccessfulPendingFinalize: Story = {
   ...storyWithBannerMsw(upgradeSuccessfulPendingFinalizeTask, {
-    finalize_required: true,
-    ysql_major_version_upgrade: true
+    precheckOverrides: {
+      finalize_required: true,
+      ysql_major_version_upgrade: true
+    },
+    universeInfoOverrides: { software_upgrade_state: UniverseInfoSoftwareUpgradeState.PreFinalize }
   }),
   args: {
     task: upgradeSuccessfulPendingFinalizeTask
@@ -178,7 +197,9 @@ const upgradeSuccessfulTask = createDbUpgradeTaskMock({
 });
 
 export const UpgradeSuccessful: Story = {
-  ...storyWithBannerMsw(upgradeSuccessfulTask),
+  ...storyWithBannerMsw(upgradeSuccessfulTask, {
+    universeInfoOverrides: { software_upgrade_state: UniverseInfoSoftwareUpgradeState.Ready }
+  }),
   args: {
     task: upgradeSuccessfulTask
   }
@@ -200,7 +221,9 @@ const upgradeFailedTask = createDbUpgradeTaskMock({
 });
 
 export const UpgradeFailed: Story = {
-  ...storyWithBannerMsw(upgradeFailedTask),
+  ...storyWithBannerMsw(upgradeFailedTask, {
+    universeInfoOverrides: { software_upgrade_state: UniverseInfoSoftwareUpgradeState.UpgradeFailed }
+  }),
   args: {
     task: upgradeFailedTask
   }

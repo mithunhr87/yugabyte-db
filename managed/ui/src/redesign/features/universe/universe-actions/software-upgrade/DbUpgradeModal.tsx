@@ -3,7 +3,7 @@ import { AxiosError } from 'axios';
 import { makeStyles } from '@material-ui/core';
 import { FormProvider, SubmitHandler, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import { useMutation, useQuery } from 'react-query';
+import { useMutation, useQuery, useQueryClient } from 'react-query';
 
 import { YBLoadingCircleIcon } from '@app/components/common/indicators';
 import { YBButton, YBModal, type YBModalProps } from '@app/redesign/components';
@@ -98,6 +98,7 @@ export const DbUpgradeModal = ({
 }: DBUpgradeModalProps) => {
   const { t } = useTranslation('translation', { keyPrefix: TRANSLATION_KEY_PREFIX });
   const classes = useStyles();
+  const queryClient = useQueryClient();
   const [currentFormStep, setCurrentFormStep] = useState<DbUpgradeFormStep>(
     DbUpgradeFormStep.DB_VERSION
   );
@@ -157,6 +158,7 @@ export const DbUpgradeModal = ({
     (data: UniverseSoftwareUpgradeReqBody) => startSoftwareUpgrade(currentUniverseUuid, data),
     {
       onSuccess: () => {
+        queryClient.invalidateQueries(universeQueryKey.detailsV2(currentUniverseUuid));
         modalProps.onClose();
       },
       onError: (error: Error | AxiosError) =>
@@ -240,6 +242,20 @@ export const DbUpgradeModal = ({
     }
   };
 
+  const targetDbVersion = formMethods.watch('targetDbVersion');
+  const getIsNextStepDisabled = (): boolean => {
+    switch (currentFormStep) {
+      case DbUpgradeFormStep.DB_VERSION:
+        return targetDbVersion === '';
+      case DbUpgradeFormStep.UPGRADE_METHOD:
+      case DbUpgradeFormStep.UPGRADE_PLAN:
+      case DbUpgradeFormStep.UPGRADE_PACE:
+        return false;
+      default:
+        return assertUnreachableCase(currentFormStep);
+    }
+  };
+
   const upgradeMethod = formMethods.watch('upgradeMethod');
   const formSteps =
     upgradeMethod === UpgradeMethod.EXPRESS
@@ -263,11 +279,10 @@ export const DbUpgradeModal = ({
           [DbUpgradeFormStep.UPGRADE_PACE]: t('stepper.upgradePace')
         };
 
-  const targetDbVersion = formMethods.watch('targetDbVersion');
   const modalTitle = t('modalTitle');
   const submitLabel = getSubmitLabel();
   const cancelLabel = t('cancel', { keyPrefix: 'common' });
-
+  const isFormDisabled = formMethods.formState.isSubmitting || !hasRequiredUpgradePermission;
   return (
     <YBModal
       title={modalTitle}
@@ -292,7 +307,7 @@ export const DbUpgradeModal = ({
       }
       buttonProps={{
         primary: {
-          disabled: !hasRequiredUpgradePermission || !targetDbVersion
+          disabled: isFormDisabled || getIsNextStepDisabled()
         }
       }}
       submitButtonTooltip={!hasRequiredUpgradePermission ? RBAC_ERR_MSG_NO_PERM : ''}

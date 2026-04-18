@@ -3,11 +3,13 @@ import { yba } from '@yugabyte-ui-library/core';
 import { makeStyles, Typography } from '@material-ui/core';
 import clsx from 'clsx';
 import { Trans, useTranslation } from 'react-i18next';
+import { AxiosError } from 'axios';
+import { useQueryClient } from 'react-query';
 
 import { CanaryPauseState, Task } from '@app/redesign/features/tasks/dtos';
 import { getPrimaryCluster } from '@app/redesign/utils/universeUtils';
 import { formatYbSoftwareVersionString } from '@app/utils/Formatters';
-import { Universe } from '@app/v2/api/yugabyteDBAnywhereV2APIs.schemas';
+import { Universe, YBATaskRespResponse } from '@app/v2/api/yugabyteDBAnywhereV2APIs.schemas';
 import { getPlacementAzMetadataList } from '../utils/formUtils';
 import { AccordionCard, AccordionCardState } from './AccordionCard';
 import { AssessPerformancePrompt } from './AssessPerformancePrompt';
@@ -17,6 +19,12 @@ import { UpgradeStageBanner } from './UpgradeStageBanner';
 import { classifyDbUpgradeStages } from './utils';
 import { TemporaryRestrictionsNotice } from './TemporaryRestrictionsNotice';
 import { DbUpgradeRollBackModal } from '../DbUpgradeRollBackModal';
+import { DbUpgradeFinalizeModal } from '../DbUpgradeFinalizeModal';
+import { useResumeCanarySoftwareUpgrade } from '@app/v2/api/universe/universe';
+import { handleServerError } from '@app/utils/errorHandlingUtils';
+import { universeQueryKey } from '@app/redesign/helpers/api';
+import { ApiPermissionMap } from '@app/redesign/features/rbac/ApiAndUserPermMapping';
+import { RbacValidator } from '@app/redesign/features/rbac/common/RbacApiPermValidator';
 
 import ConnectIcon from '@app/redesign/assets/approved/connect.svg';
 
@@ -72,41 +80,82 @@ export const DbUpgradeProgressPanel = ({
   isYsqlMajorUpgrade
 }: DbUpgradeProgressPanelProps) => {
   const [isDbUpgradeRollbackModalOpen, setIsDbUpgradeRollbackModalOpen] = useState(false);
+  const [isDbUpgradeFinalizeModalOpen, setIsDbUpgradeFinalizeModalOpen] = useState(false);
   const classes = useStyles();
+  const queryClient = useQueryClient();
   const { t } = useTranslation('translation', {
     keyPrefix: 'universeActions.dbUpgrade.dbUpgradeManagementSidePanel.progressPanel'
   });
+
+  const resumeUpgradeMutation = useResumeCanarySoftwareUpgrade({
+    mutation: {
+      onSuccess: (_: YBATaskRespResponse, variables: { uniUUID: string }) => {
+        queryClient.invalidateQueries(universeQueryKey.detailsV2(variables.uniUUID));
+      },
+      onError: (error: Error | AxiosError) =>
+        handleServerError(error, {
+          customErrorLabel: t('error.requestFailureLabel')
+        })
+    }
+  });
+
+  const universeUuid = universe?.info?.universe_uuid ?? '';
+
+  const resumeCanaryRbacAccessRequiredOn = {
+    onResource: universeUuid,
+    ...ApiPermissionMap.UPGRADE_UNIVERSE_RESUME_CANARY
+  };
+
+  const rollbackRbacAccessRequiredOn = {
+    onResource: universeUuid,
+    ...ApiPermissionMap.UPGRADE_UNIVERSE_ROLLBACK
+  };
+
+  const finalizeRbacAccessRequiredOn = {
+    onResource: universeUuid,
+    ...ApiPermissionMap.UPGRADE_UNIVERSE_FINALIZE
+  };
 
   const handleRollbackUpgrade = () => {
     setIsDbUpgradeRollbackModalOpen(true);
   };
   const handleResumeUpgrade = () => {
-    // TODO: PLAT-20428 - Implement resume upgrade logic
+    if (!universeUuid) {
+      return;
+    }
+    resumeUpgradeMutation.mutateAsync({
+      uniUUID: universeUuid,
+      data: {
+        task_uuid: dbUpgradeTask.id ?? ''
+      }
+    });
   };
+
+  const handleFinalizeUpgrade = () => {
+    setIsDbUpgradeFinalizeModalOpen(true);
+  };
+
+  const targetDbVersion = dbUpgradeTask?.details?.versionNumbers?.ybSoftwareVersion;
+  const dbUpgradeTaskPauseState = dbUpgradeTask?.softwareUpgradeProgress?.canaryPauseState;
+  const tserverAZUpgradeStatesList =
+    dbUpgradeTask?.softwareUpgradeProgress?.tserverAZUpgradeStatesList;
 
   const upgradedAzMetadataList =
     getPlacementAzMetadataList(getPrimaryCluster(universe?.spec?.clusters ?? [])) ?? [];
   const upgradedAzDisplayNameByUuid = Object.fromEntries(
     upgradedAzMetadataList.map((az) => [az.azUuid, az.displayName])
   );
-  const upgradeAzStageCount =
-    dbUpgradeTask.softwareUpgradeProgress?.tserverAZUpgradeStatesList?.length ?? 0;
-
+  const upgradeAzStageCount = tserverAZUpgradeStatesList?.length ?? 0;
   const { preCheckStage, upgradeMasterServersStage, upgradeAzStages, finalizeStage } =
     classifyDbUpgradeStages(dbUpgradeTask);
-  const isPausedAfterTservers =
-    dbUpgradeTask.softwareUpgradeProgress?.canaryPauseState ===
-    CanaryPauseState.PAUSED_AFTER_TSERVERS_AZ;
-  const isPausedAfterMasters =
-    dbUpgradeTask.softwareUpgradeProgress?.canaryPauseState ===
-    CanaryPauseState.PAUSED_AFTER_MASTERS;
   const isPausedAfterSuccessfulMasterServersUpgrade =
-    isPausedAfterMasters && upgradeMasterServersStage === AccordionCardState.SUCCESS;
+    dbUpgradeTaskPauseState === CanaryPauseState.PAUSED_AFTER_MASTERS &&
+    upgradeMasterServersStage === AccordionCardState.SUCCESS;
   const isTserverAzUpgradeStagesCompleted = Object.values(upgradeAzStages).every(
     (azUpgradeStage) => azUpgradeStage.accordionCardState === AccordionCardState.SUCCESS
   );
-  const targetDbVersionLabel = dbUpgradeTask.details?.versionNumbers?.ybSoftwareVersion
-    ? formatYbSoftwareVersionString(dbUpgradeTask.details?.versionNumbers?.ybSoftwareVersion)
+  const targetDbVersionLabel = targetDbVersion
+    ? formatYbSoftwareVersionString(targetDbVersion)
     : '-';
   const taskUuid = dbUpgradeTask.id ?? '';
 
@@ -121,7 +170,7 @@ export const DbUpgradeProgressPanel = ({
         </Typography>
         <PreCheckStageBanner
           state={preCheckStage}
-          universeUuid={universe?.info?.universe_uuid ?? ''}
+          universeUuid={universeUuid}
           taskUuid={taskUuid}
         />
       </AccordionCard>
@@ -149,70 +198,75 @@ export const DbUpgradeProgressPanel = ({
         )}
         <UpgradeStageBanner
           state={upgradeMasterServersStage}
-          universeUuid={universe?.info?.universe_uuid ?? ''}
+          universeUuid={universeUuid}
           taskUuid={taskUuid}
         />
         {isPausedAfterSuccessfulMasterServersUpgrade && (
           <div className={classes.cardButtonsContainer}>
-            <YBButton
-              variant="secondary"
-              onClick={handleRollbackUpgrade}
-              dataTestId="roll-back-upgrade-button-masters"
-            >
-              {t('rollBack')}
-            </YBButton>
-            <YBButton
-              variant="ybaPrimary"
-              onClick={handleResumeUpgrade}
-              dataTestId="resume-upgrade-button-masters"
-            >
-              {t('resumeUpgrade')}
-            </YBButton>
+            <RbacValidator accessRequiredOn={rollbackRbacAccessRequiredOn} isControl>
+              <YBButton
+                variant="secondary"
+                onClick={handleRollbackUpgrade}
+                dataTestId="roll-back-upgrade-button-masters"
+              >
+                {t('rollBack')}
+              </YBButton>
+            </RbacValidator>
+            <RbacValidator accessRequiredOn={resumeCanaryRbacAccessRequiredOn} isControl>
+              <YBButton
+                variant="ybaPrimary"
+                onClick={handleResumeUpgrade}
+                disabled={resumeUpgradeMutation.isLoading}
+                dataTestId="resume-upgrade-button-masters"
+              >
+                {t('resumeUpgrade')}
+              </YBButton>
+            </RbacValidator>
           </div>
         )}
       </AccordionCard>
-      {dbUpgradeTask.softwareUpgradeProgress?.tserverAZUpgradeStatesList.map(
-        (azUpgradeState, index) => {
-          const azUpgradeStagePresentation = upgradeAzStages[azUpgradeState.azUUID];
-          const cardState =
-            azUpgradeStagePresentation?.accordionCardState ?? AccordionCardState.NEUTRAL;
-          const isPausedAfterSuccessfulUpgrade =
-            cardState === AccordionCardState.SUCCESS &&
-            isPausedAfterTservers &&
-            azUpgradeStagePresentation?.isLastAzBeforeCanaryPause;
-          return (
-            <AccordionCard
-              key={azUpgradeState.azUUID}
-              title={t('upgradeAzStage.title', {
-                azLabel: upgradedAzDisplayNameByUuid[azUpgradeState.azUUID] ?? azUpgradeState.azName
-              })}
-              stepNumber={TSERVER_AZ_UPGRADE_STAGE_START_INDEX + index}
-              state={cardState}
-            >
-              <Typography variant="subtitle1" className={classes.infoText}>
-                <Trans
-                  t={t}
-                  i18nKey="upgradeAzStage.description"
-                  components={{ bold: <b /> }}
-                  values={{ azName: azUpgradeState.azName, version: targetDbVersionLabel }}
-                />
-              </Typography>
-              {cardState === AccordionCardState.NEUTRAL && (
-                <TemporaryRestrictionsNotice
-                  upgradeStageCategory={UpgradeStageCategory.UPGRADE}
-                  isYsqlMajorUpgrade={isYsqlMajorUpgrade}
-                />
-              )}
-              {isPausedAfterSuccessfulUpgrade && (
-                <AssessPerformancePrompt upgradeStageCategory={UpgradeStageCategory.UPGRADE} />
-              )}
-              <UpgradeStageBanner
-                state={cardState}
-                universeUuid={universe?.info?.universe_uuid ?? ''}
-                taskUuid={taskUuid}
+      {(tserverAZUpgradeStatesList ?? []).map((azUpgradeState, index) => {
+        const azUpgradeStagePresentation = upgradeAzStages[azUpgradeState.azUUID];
+        const cardState =
+          azUpgradeStagePresentation?.accordionCardState ?? AccordionCardState.NEUTRAL;
+        const isPausedAfterSuccessfulUpgrade =
+          cardState === AccordionCardState.SUCCESS &&
+          dbUpgradeTaskPauseState === CanaryPauseState.PAUSED_AFTER_TSERVERS_AZ &&
+          azUpgradeStagePresentation?.isLastAzBeforeCanaryPause;
+        return (
+          <AccordionCard
+            key={azUpgradeState.azUUID}
+            title={t('upgradeAzStage.title', {
+              azLabel: upgradedAzDisplayNameByUuid[azUpgradeState.azUUID] ?? azUpgradeState.azName
+            })}
+            stepNumber={TSERVER_AZ_UPGRADE_STAGE_START_INDEX + index}
+            state={cardState}
+          >
+            <Typography variant="subtitle1" className={classes.infoText}>
+              <Trans
+                t={t}
+                i18nKey="upgradeAzStage.description"
+                components={{ bold: <b /> }}
+                values={{ azName: azUpgradeState.azName, version: targetDbVersionLabel }}
               />
-              {isPausedAfterSuccessfulUpgrade && (
-                <div className={classes.cardButtonsContainer}>
+            </Typography>
+            {cardState === AccordionCardState.NEUTRAL && (
+              <TemporaryRestrictionsNotice
+                upgradeStageCategory={UpgradeStageCategory.UPGRADE}
+                isYsqlMajorUpgrade={isYsqlMajorUpgrade}
+              />
+            )}
+            {isPausedAfterSuccessfulUpgrade && (
+              <AssessPerformancePrompt upgradeStageCategory={UpgradeStageCategory.UPGRADE} />
+            )}
+            <UpgradeStageBanner
+              state={cardState}
+              universeUuid={universeUuid}
+              taskUuid={taskUuid}
+            />
+            {isPausedAfterSuccessfulUpgrade && (
+              <div className={classes.cardButtonsContainer}>
+                <RbacValidator accessRequiredOn={rollbackRbacAccessRequiredOn} isControl>
                   <YBButton
                     variant="secondary"
                     onClick={handleRollbackUpgrade}
@@ -220,19 +274,22 @@ export const DbUpgradeProgressPanel = ({
                   >
                     {t('rollBack')}
                   </YBButton>
+                </RbacValidator>
+                <RbacValidator accessRequiredOn={resumeCanaryRbacAccessRequiredOn} isControl>
                   <YBButton
                     variant="ybaPrimary"
                     onClick={handleResumeUpgrade}
+                    disabled={resumeUpgradeMutation.isLoading}
                     dataTestId={`resume-upgrade-button-tserverAz-${azUpgradeState.azUUID}`}
                   >
                     {t('resumeUpgrade')}
                   </YBButton>
-                </div>
-              )}
-            </AccordionCard>
-          );
-        }
-      )}
+                </RbacValidator>
+              </div>
+            )}
+          </AccordionCard>
+        );
+      })}
       <AccordionCard
         title={t('finalizeStage.title')}
         stepNumber={TSERVER_AZ_UPGRADE_STAGE_START_INDEX + upgradeAzStageCount}
@@ -247,21 +304,25 @@ export const DbUpgradeProgressPanel = ({
         )}
         {isTserverAzUpgradeStagesCompleted && (
           <div className={classes.cardButtonsContainer}>
-            <YBButton
-              variant="secondary"
-              onClick={handleRollbackUpgrade}
-              dataTestId="roll-back-upgrade-button-finalize"
-            >
-              {t('rollBack')}
-            </YBButton>
-            <YBButton
-              variant="ybaPrimary"
-              startIcon={<ConnectIcon width={24} height={24} />}
-              onClick={handleResumeUpgrade}
-              dataTestId="finalize-upgrade-now-button"
-            >
-              {t('finalizeUpgradeNow')}
-            </YBButton>
+            <RbacValidator accessRequiredOn={rollbackRbacAccessRequiredOn} isControl>
+              <YBButton
+                variant="secondary"
+                onClick={handleRollbackUpgrade}
+                dataTestId="roll-back-upgrade-button-finalize"
+              >
+                {t('rollBack')}
+              </YBButton>
+            </RbacValidator>
+            <RbacValidator accessRequiredOn={finalizeRbacAccessRequiredOn} isControl>
+              <YBButton
+                variant="ybaPrimary"
+                startIcon={<ConnectIcon width={24} height={24} />}
+                onClick={handleFinalizeUpgrade}
+                dataTestId="finalize-upgrade-now-button"
+              >
+                {t('finalizeUpgradeNow')}
+              </YBButton>
+            </RbacValidator>
           </div>
         )}
       </AccordionCard>
@@ -270,7 +331,14 @@ export const DbUpgradeProgressPanel = ({
           open: isDbUpgradeRollbackModalOpen,
           onClose: () => setIsDbUpgradeRollbackModalOpen(false)
         }}
-        universeUuid={universe?.info?.universe_uuid ?? ''}
+        universeUuid={universeUuid}
+      />
+      <DbUpgradeFinalizeModal
+        modalProps={{
+          open: isDbUpgradeFinalizeModalOpen,
+          onClose: () => setIsDbUpgradeFinalizeModalOpen(false)
+        }}
+        universeUuid={universeUuid}
       />
     </div>
   );

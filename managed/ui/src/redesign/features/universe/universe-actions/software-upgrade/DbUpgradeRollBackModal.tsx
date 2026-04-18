@@ -264,7 +264,6 @@ export const DbUpgradeRollBackModal = ({
     (data: UniverseRollbackUpgradeReqBody) => rollbackSoftwareUpgrade(universeUuid, data),
     {
       onSuccess: () => {
-        queryClient.invalidateQueries(getGetUniverseQueryKey(universeUuid));
         queryClient.invalidateQueries(universeQueryKey.detailsV2(universeUuid));
         modalProps.onClose();
       },
@@ -295,7 +294,7 @@ export const DbUpgradeRollBackModal = ({
     ...ApiPermissionMap.UPGRADE_UNIVERSE_ROLLBACK
   });
   const rollbackPace = formMethods.watch('rollBackPace');
-  const isFormDisabled = formMethods.formState.isSubmitting;
+  const isFormDisabled = formMethods.formState.isSubmitting || !hasRollbackPermission;
   const isRollingOptionsDisabled = rollbackPace === UpgradePace.CONCURRENT;
   const isDbUpgradeTaskCompleted = latestSoftwareUpgradeTask?.status === TaskState.SUCCESS;
 
@@ -326,7 +325,7 @@ export const DbUpgradeRollBackModal = ({
       hideCloseBtn={false}
       buttonProps={{
         primary: {
-          disabled: !hasRollbackPermission || !prevVersion
+          disabled: isFormDisabled
         }
       }}
       submitButtonTooltip={!hasRollbackPermission ? RBAC_ERR_MSG_NO_PERM : ''}
