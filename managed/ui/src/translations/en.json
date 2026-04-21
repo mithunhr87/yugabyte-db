@@ -95,6 +95,10 @@
         }
       }
     },
+    "toast": {
+      "dbUpgradeRollbackRequestFailedLabel": "DB upgrade rollback request failed",
+      "dbUpgradeFinalizeRequestFailedLabel": "DB upgrade finalize request failed"
+    },
     "queryError": {
       "failedToFetchUniverseList": "Error fetching universe list.",
       "failedToFetchCustomerRuntimeConfig": "Failed to fetch runtime configurations for the current customer.",
@@ -472,7 +476,8 @@
           "actions": {
             "viewDetails": "View Details",
             "openUpgradeMonitor": "Open Upgrade Monitor",
-            "upgradeDatabase": "Upgrade Database"
+            "upgradeDatabase": "Upgrade Database",
+            "retry": "Retry"
           },
           "precheckInProgress": {
             "title": "Upgrade pre-check in progress.",

@@ -24,8 +24,15 @@ import { TaskFailedSoftwareUpgradeBanner } from './bannerComp/TaskFailedSoftware
 import { isSoftwareUpgradeFailed, useIsTaskNewUIEnabled } from '../TaskUtils';
 import { hideTaskInDrawer, showTaskInDrawer } from '../../../../actions/tasks';
 import { Task, TaskState } from '../dtos';
-import { getIsDbUpgradePrecheckTask, getIsDbUpgradeTask } from '../utils/dbUpgradeTaskUtils';
+import {
+  getIsDbUpgradeFinalizeTask,
+  getIsDbUpgradePrecheckTask,
+  getIsDbUpgradeRollbackTask,
+  getIsDbUpgradeTask
+} from '../utils/dbUpgradeTaskUtils';
+import { DbUpgradeFinalizeTaskBanner } from './clusterBanner/DbUpgradeFinalizeTaskBanner';
 import { DbUpgradePrecheckTaskBanner } from './clusterBanner/DbUpgradePrecheckTaskBanner';
+import { DbUpgradeRollbackTaskBanner } from './clusterBanner/DbUpgradeRollbackTaskBanner';
 import { DbUpgradeTaskBanner } from './clusterBanner/DbUpgradeTaskBanner';
 
 const useStyles = makeStyles((theme) => ({
@@ -148,24 +155,43 @@ export const TaskDetailBanner: FC<TaskDetailBannerProps> = ({ universeUUID }) =>
 
   if (!task) return null;
 
-  if (getIsDbUpgradePrecheckTask(task) && isCanaryUpgradeEnabled) {
-    return (
-      <div className={classes.bannerContainer}>
-        <DbUpgradePrecheckTaskBanner
-          task={task}
-          universeUuid={universeUUID}
-          onDismiss={hideBanner}
-        />
-      </div>
-    );
+  if (isCanaryUpgradeEnabled) {
+    if (getIsDbUpgradePrecheckTask(task)) {
+      return (
+        <div className={classes.bannerContainer}>
+          <DbUpgradePrecheckTaskBanner
+            task={task}
+            universeUuid={universeUUID}
+            onDismiss={hideBanner}
+          />
+        </div>
+      );
+    }
+
+    if (getIsDbUpgradeRollbackTask(task)) {
+      return (
+        <div className={classes.bannerContainer}>
+          <DbUpgradeRollbackTaskBanner task={task} universeUuid={universeUUID} />
+        </div>
+      );
+    }
+
+    if (getIsDbUpgradeFinalizeTask(task)) {
+      return (
+        <div className={classes.bannerContainer}>
+          <DbUpgradeFinalizeTaskBanner task={task} universeUuid={universeUUID} />
+        </div>
+      );
+    }
+
+    if (getIsDbUpgradeTask(task)) {
+      return (
+        <div className={classes.bannerContainer}>
+          <DbUpgradeTaskBanner task={task} universeUuid={universeUUID} />
+        </div>
+      );
+    }
   }
 
-  if (getIsDbUpgradeTask(task) && isCanaryUpgradeEnabled) {
-    return (
-      <div className={classes.bannerContainer}>
-        <DbUpgradeTaskBanner task={task} universeUuid={universeUUID} />
-      </div>
-    );
-  }
   return <>{bannerComp(task)}</>;
 };

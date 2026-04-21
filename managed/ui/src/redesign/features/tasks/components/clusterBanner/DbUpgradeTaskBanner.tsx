@@ -3,8 +3,7 @@ import { Link as MUILink } from '@material-ui/core';
 import { Trans, useTranslation } from 'react-i18next';
 import { useQuery } from 'react-query';
 
-import { yba } from '@yugabyte-ui-library/core';
-
+import { YBButton } from '@app/redesign/components';
 import { DbUpgradeFinalizeModal } from '@app/redesign/features/universe/universe-actions/software-upgrade/DbUpgradeFinalizeModal';
 import { DbUpgradeManagementSidePanel } from '@app/redesign/features/universe/universe-actions/software-upgrade/upgrade-management/DbUpgradeManagementSidePanel';
 import { DbUpgradeRollBackModal } from '@app/redesign/features/universe/universe-actions/software-upgrade/DbUpgradeRollBackModal';
@@ -19,8 +18,6 @@ import { Task, TaskState } from '../../dtos';
 import { ClusterOperationBanner, ClusterOperationBannerType } from './ClusterOperationBanner';
 
 import ConnectIcon from '@app/redesign/assets/approved/connect.svg';
-
-const { YBButton } = yba;
 interface DbUpgradeTaskBannerProps {
   task: Task;
   universeUuid: string;
@@ -68,7 +65,7 @@ export const DbUpgradeTaskBanner = ({ task, universeUuid }: DbUpgradeTaskBannerP
     <YBButton
       variant="secondary"
       size="medium"
-      dataTestId="open-upgrade-monitor-button"
+      data-testid="open-upgrade-monitor-button"
       onClick={() => setIsDbUpgradeManagementSidePanelOpen(true)}
     >
       {t('actions.openUpgradeMonitor')}
@@ -130,16 +127,16 @@ export const DbUpgradeTaskBanner = ({ task, universeUuid }: DbUpgradeTaskBannerP
                 <YBButton
                   variant="secondary"
                   size="medium"
-                  dataTestId="roll-back-upgrade-button-finalize"
+                  data-testid="roll-back-upgrade-button-finalize"
                   onClick={() => setIsDbUpgradeRollBackModalOpen(true)}
                 >
                   {t('finalizeOrRollBack.rollBack')}
                 </YBButton>
                 <YBButton
-                  variant="ybaPrimary"
+                  variant="primary"
                   size="medium"
                   startIcon={<ConnectIcon width={24} height={24} />}
-                  dataTestId="finalize-upgrade-now-button"
+                  data-testid="finalize-upgrade-now-button"
                   onClick={() => setIsDbUpgradeFinalizeModalOpen(true)}
                 >
                   {t('finalizeOrRollBack.finalizeUpgradeNow')}

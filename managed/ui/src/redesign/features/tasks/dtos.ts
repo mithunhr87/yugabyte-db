@@ -34,6 +34,8 @@ export const TaskType = {
   GFlags_UPGRADE: 'GFlagsUpgrade',
   EDIT: 'Update',
   SOFTWARE_UPGRADE: 'SoftwareUpgrade',
+  ROLLBACK_UPGRADE: 'RollbackUpgrade',
+  FINALIZE_UPGRADE: 'FinalizeUpgrade',
   RESIZE_NODE: 'ResizeNode',
   RESTORE_YBA_BACKUP: 'RestoreYbaBackup'
 };

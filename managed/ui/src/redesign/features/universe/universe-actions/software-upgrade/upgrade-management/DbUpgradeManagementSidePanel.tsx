@@ -14,6 +14,7 @@ import { SortDirection } from '@app/redesign/utils/dtos';
 import { formatYbSoftwareVersionString } from '@app/utils/Formatters';
 import { getUniverse, precheckSoftwareUpgrade } from '@app/v2/api/universe/universe';
 import { DbUpgradeProgressPanel } from './DbUpgradeProgressPanel';
+import { PollingIntervalMs } from '@app/components/xcluster/constants';
 
 interface DbUpgradeManagementSidePanelProps {
   universeUuid: string;
@@ -68,7 +69,7 @@ export const DbUpgradeManagementSidePanel = ({
   const softwareUpgradeTasksQuery = useQuery(
     taskQueryKey.paged(getPagedSoftwareUpgradeTasksRequest),
     () => api.fetchPagedCustomerTasks(getPagedSoftwareUpgradeTasksRequest),
-    { enabled: isPanelOpen && !!universeUuid }
+    { enabled: isPanelOpen && !!universeUuid, refetchInterval: PollingIntervalMs.FOCUSED_TASK }
   );
 
   const latestSoftwareUpgradeTask = softwareUpgradeTasksQuery.data?.entities[0];

@@ -303,3 +303,113 @@ export const createDbUpgradePrecheckMetadataMock = (
   ysql_major_version_upgrade: false,
   ...overrides
 });
+
+export const DB_UPGRADE_ROLLBACK_TASK_ID = 'b0000001-0001-4000-8000-000000000001';
+
+export const DB_UPGRADE_ROLLBACK_TASK_UNIVERSE_UUID =
+  'b0000001-0001-4000-8000-000000000002';
+
+const buildDbUpgradeRollbackTaskFixture = (): Task => ({
+  id: DB_UPGRADE_ROLLBACK_TASK_ID,
+  title: 'Rolling back upgrade : mock-universe',
+  percentComplete: 30,
+  createTime: '2026-04-21T10:00:00Z',
+  completionTime: '2026-04-21T10:05:00Z',
+  target: TargetType.UNIVERSE as Task['target'],
+  targetUUID: DB_UPGRADE_ROLLBACK_TASK_UNIVERSE_UUID,
+  type: TaskType.ROLLBACK_UPGRADE as Task['type'],
+  typeName: 'Rollback Upgrade',
+  status: TaskState.RUNNING,
+  details: {
+    taskDetails: [
+      {
+        title: 'Rolling back software',
+        description: 'Rolling back YugaByte software on existing clusters.',
+        state: TaskState.RUNNING,
+        extraDetails: []
+      }
+    ],
+    versionNumbers: {
+      ybPrevSoftwareVersion: '2025.1.1.0-b110',
+      ybSoftwareVersion: '2025.2.2.2-b11'
+    }
+  },
+  abortable: true,
+  retryable: true,
+  canRollback: false,
+  correlationId: 'b0000001-0001-4000-8000-000000000003',
+  userEmail: 'admin',
+  subtaskInfos: [],
+  taskInfo: {
+    taskParams: {}
+  }
+});
+
+export const createDbUpgradeRollbackTaskMock = (overrides: Partial<Task> = {}): Task => {
+  const base = buildDbUpgradeRollbackTaskFixture();
+  return {
+    ...base,
+    ...overrides,
+    details: {
+      ...base.details,
+      ...(overrides.details ?? {}),
+      taskDetails: overrides.details?.taskDetails ?? base.details.taskDetails,
+      versionNumbers: overrides.details?.versionNumbers ?? base.details.versionNumbers
+    }
+  };
+};
+
+export const DB_UPGRADE_FINALIZE_TASK_ID = 'c0000001-0001-4000-8000-000000000001';
+
+export const DB_UPGRADE_FINALIZE_TASK_UNIVERSE_UUID =
+  'c0000001-0001-4000-8000-000000000002';
+
+const buildDbUpgradeFinalizeTaskFixture = (): Task => ({
+  id: DB_UPGRADE_FINALIZE_TASK_ID,
+  title: 'Finalizing upgrade : mock-universe',
+  percentComplete: 90,
+  createTime: '2026-04-21T10:00:00Z',
+  completionTime: '2026-04-21T10:05:00Z',
+  target: TargetType.UNIVERSE as Task['target'],
+  targetUUID: DB_UPGRADE_FINALIZE_TASK_UNIVERSE_UUID,
+  type: TaskType.FINALIZE_UPGRADE as Task['type'],
+  typeName: 'Finalize Upgrade',
+  status: TaskState.RUNNING,
+  details: {
+    taskDetails: [
+      {
+        title: 'Finalizing software',
+        description: 'Finalizing YugaByte software upgrade on existing clusters.',
+        state: TaskState.RUNNING,
+        extraDetails: []
+      }
+    ],
+    versionNumbers: {
+      ybPrevSoftwareVersion: '2025.1.1.0-b110',
+      ybSoftwareVersion: '2025.2.2.2-b11'
+    }
+  },
+  abortable: true,
+  retryable: true,
+  canRollback: false,
+  correlationId: 'c0000001-0001-4000-8000-000000000003',
+  userEmail: 'admin',
+  subtaskInfos: [],
+  taskInfo: {
+    taskParams: {}
+  }
+});
+
+export const createDbUpgradeFinalizeTaskMock = (overrides: Partial<Task> = {}): Task => {
+  const base = buildDbUpgradeFinalizeTaskFixture();
+  return {
+    ...base,
+    ...overrides,
+    details: {
+      ...base.details,
+      ...(overrides.details ?? {}),
+      taskDetails: overrides.details?.taskDetails ?? base.details.taskDetails,
+      versionNumbers: overrides.details?.versionNumbers ?? base.details.versionNumbers
+    }
+  };
+};

@@ -49,6 +49,9 @@ export const dbUpgradeManagementPanelMswHandlers = (
     http.post(
       `http://localhost:9000/api/v2/customers/customer-uuid/universes/${universeUuid}/upgrade/software/precheck`,
       () => HttpResponse.json(precheckBody)
+    ),
+    http.post(`http://localhost:9000/api/v1/customers/customer-uuid/tasks/${task.id}`, () =>
+      HttpResponse.json({ taskUUID: task.id })
     )
   ];
 };

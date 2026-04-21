@@ -27,3 +27,9 @@ export const getIsDbUpgradeTask = (task: Task): boolean =>
 
 export const getIsDbUpgradePrecheckTask = (task: Task): boolean =>
   task.type === TaskType.SOFTWARE_UPGRADE && getIsPreCheckTask(task);
+
+export const getIsDbUpgradeRollbackTask = (task: Task): boolean =>
+  task.type === TaskType.ROLLBACK_UPGRADE;
+
+export const getIsDbUpgradeFinalizeTask = (task: Task): boolean =>
+  task.type === TaskType.FINALIZE_UPGRADE;

@@ -4,9 +4,9 @@ import { useQuery } from 'react-query';
 import { useDispatch } from 'react-redux';
 
 import { Link as MUILink, Typography } from '@material-ui/core';
-import { yba } from '@yugabyte-ui-library/core';
 
 import { showTaskInDrawer } from '@app/actions/tasks';
+import { YBButton } from '@app/redesign/components';
 import { YBA_UNIVERSE_UPGRADE_DOCUMENTATION_URL } from '@app/redesign/features/universe/universe-actions/software-upgrade/constants';
 import { DbUpgradeModal } from '@app/redesign/features/universe/universe-actions/software-upgrade/DbUpgradeModal';
 import { dbUpgradeMetadataQueryKey } from '@app/redesign/helpers/api';
@@ -17,8 +17,6 @@ import { precheckSoftwareUpgrade } from '@app/v2/api/universe/universe';
 import { Task, TaskState } from '../../dtos';
 import { getIsDbUpgradePrecheckTask } from '../../utils/dbUpgradeTaskUtils';
 import { ClusterOperationBanner, ClusterOperationBannerType } from './ClusterOperationBanner';
-
-const { YBButton } = yba;
 
 interface DbUpgradePrecheckTaskBannerProps {
   task: Task;
@@ -64,7 +62,7 @@ export const DbUpgradePrecheckTaskBanner = ({
     <YBButton
       variant="secondary"
       size="medium"
-      dataTestId={`${BANNER_TEST_ID}-view-details-button`}
+      data-testid={`${BANNER_TEST_ID}-view-details-button`}
       onClick={() => dispatch(showTaskInDrawer(task.id))}
     >
       {t('actions.viewDetails')}
@@ -126,7 +124,7 @@ export const DbUpgradePrecheckTaskBanner = ({
             <YBButton
               variant="secondary"
               size="medium"
-              dataTestId={`${BANNER_TEST_ID}-upgrade-database-button`}
+              data-testid={`${BANNER_TEST_ID}-upgrade-database-button`}
               onClick={() => setIsDbUpgradeModalOpen(true)}
             >
               {t('actions.upgradeDatabase')}
