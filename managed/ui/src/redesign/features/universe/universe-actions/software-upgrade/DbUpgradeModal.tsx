@@ -108,6 +108,7 @@ export const DbUpgradeModal = ({
 
   const clusters = universeDetailsQuery.data?.spec?.clusters ?? [];
   const currentDbVersion = universeDetailsQuery.data?.spec?.yb_software_version ?? '';
+  const currentReleaseArchitecture = universeDetailsQuery.data?.info?.arch;
   const maxNodesPerBatchMaximum =
     universeDetailsQuery.data?.info?.roll_max_batch_size?.primary_batch_size ?? 1;
 
@@ -132,6 +133,7 @@ export const DbUpgradeModal = ({
   const targetReleaseOptions = buildVersionOptions(
     releasesList,
     currentDbVersion,
+    currentReleaseArchitecture,
     shouldSkipVersionChecks
   );
 
