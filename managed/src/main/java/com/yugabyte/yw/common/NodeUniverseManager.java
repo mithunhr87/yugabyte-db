@@ -221,7 +221,9 @@ public class NodeUniverseManager extends DevopsBase {
         node.getNodeName());
 
     // Collect all files in a compressed archive in the tmp dir.
-    cmds = new ArrayList<>(Arrays.asList("sudo", "tar", "-czhf"));
+    // --warning=no-file-changed: live logs (e.g. /var/log/messages) can change during read; GNU tar
+    // otherwise exits 1 and the support bundle skips system logs.
+    cmds = new ArrayList<>(Arrays.asList("sudo", "tar", "--warning=no-file-changed", "-czhf"));
     String pathToTar = nodeTmpDir + "/root_files.tar.gz";
     cmds.add(pathToTar);
     cmds.addAll(paths);
