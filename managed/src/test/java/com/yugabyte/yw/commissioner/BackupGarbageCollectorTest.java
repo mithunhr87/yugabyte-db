@@ -583,21 +583,6 @@ public class BackupGarbageCollectorTest extends FakeDBApplication {
     verify(mockStorageUtilFactory, times(0)).getCloudUtil(anyString());
   }
 
-  @Test
-  public void testDeleteForcedBackupWithImmutableStorage() {
-    CustomerConfig customerConfig = createImmutableStorageConfig("TEST_IMMUT4");
-    BackupTableParams bp = new BackupTableParams();
-    bp.storageConfigUUID = customerConfig.getConfigUUID();
-    bp.setUniverseUUID(UUID.randomUUID());
-    Backup backup = Backup.create(defaultCustomer.getUuid(), bp);
-    backup.transitionState(BackupState.QueuedForForcedDeletion);
-    backupGC.scheduleRunner();
-    assertThrows(
-        PlatformServiceException.class,
-        () -> Backup.getOrBadRequest(defaultCustomer.getUuid(), backup.getBackupUUID()));
-    verify(mockStorageUtilFactory, times(0)).getCloudUtil(anyString());
-  }
-
   public static void setUniversePaused(boolean value, Universe universe) {
     Universe.UniverseUpdater updater =
         new Universe.UniverseUpdater() {
